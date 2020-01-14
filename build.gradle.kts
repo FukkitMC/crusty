@@ -16,6 +16,7 @@
 
 plugins {
     `java-gradle-plugin`
+    `maven-publish`
     kotlin("jvm") version "1.3.61"
 }
 
@@ -29,15 +30,23 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("com.google.code.gson", "gson", "2.8.6")
-    implementation("org.eclipse.jgit", "org.eclipse.jgit", "latest.release")
     implementation("org.ow2.asm", "asm", "7.3.1")
 }
 
 gradlePlugin {
     plugins {
-        create("io.github.fukkitmc.crusty") {
+        create("crusty") {
             id = "io.github.fukkitmc.crusty"
             implementationClass = "io.github.fukkitmc.crusty.MappingsPlugin"
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "Fukkit"
+            url = uri("../fukkit-repo")
         }
     }
 }
