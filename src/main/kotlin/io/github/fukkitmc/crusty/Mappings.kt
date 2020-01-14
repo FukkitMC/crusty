@@ -102,12 +102,12 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
         }
 
         methodMap.forEach { (member, intermediary) ->
-            val crusty = crustyMethodMap[member] ?: intermediary
+            val crusty = crustyMethodMap[member] ?: member.name
             writer.write("METHOD\t${member.owner}\t${member.desc}\t${member.name}\t$intermediary\t$crusty\n")
         }
 
         fieldMap.forEach { (member, intermediary) ->
-            val crusty = crustyFieldMap[member] ?: intermediary
+            val crusty = crustyFieldMap[member] ?: member.name
             writer.write("FIELD\t${member.owner}\t${member.desc}\t${member.name}\t$intermediary\t$crusty\n")
         }
 
