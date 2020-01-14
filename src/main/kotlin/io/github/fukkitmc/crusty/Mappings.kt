@@ -43,7 +43,7 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
         }
     }
 
-    val crustyClassMap = mutableMapOf<String, String>()
+    val crustyClassMap = mutableMapOf("net/minecraft/server/MinecraftServer" to "net/minecraft/server/MinecraftServer")
     val crustyFieldMap = mutableMapOf<Member, String>()
     val crustyMethodMap = mutableMapOf<Member, String>()
     val crustyUnClassMap = mutableMapOf<String, String>()
