@@ -5,7 +5,7 @@ FukkitMC's simple Gradle plugin to use SpigotMC's mappings.
 Requires `git` to be on the path.
 ```groovy
 plugins {
-    id 'io.github.fukkitmc.crusty' version '1.0.0'
+    id 'io.github.fukkitmc.crusty' version '1.1.2'
 }
 
 dependencies {
@@ -14,7 +14,7 @@ dependencies {
 ```
 ```kotlin
 plugins {
-    id("io.github.fukkitmc.crusty") version "1.0.0"
+    id("io.github.fukkitmc.crusty") version "1.1.2"
 }
 
 dependencies {

@@ -48,7 +48,7 @@ open class MappingsExtension(private val project: Project) {
     }
 
     fun mappings(version: String): Dependency {
-        val output = project.buildDir.parentFile.resolve(".gradle").resolve("$version.jar")
+        val output = project.buildDir.parentFile.resolve(".gradle").resolve("crusty-$version.jar")
 
         if (!output.exists()) {
             val checkout = URL("https://hub.spigotmc.org/versions/$version.json").openStream().use {
