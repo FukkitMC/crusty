@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `java-gradle-plugin`
     `maven-publish`
@@ -31,6 +33,10 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("com.google.code.gson", "gson", "2.8.6")
     implementation("org.ow2.asm", "asm", "7.3.1")
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 gradlePlugin {
