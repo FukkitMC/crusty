@@ -57,9 +57,21 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
         }
     }
 
+    fun Map<String, String>.g(name: String): String? = this[name] ?: run {
+        val i = name.lastIndexOf('$').let { if (it > 0) it else name.length }
+        val a = name.substring(0, i)
+        val b = name.substring(i)
+
+        if (b.isEmpty()) {
+            get(name)
+        } else {
+            g(a)?.let { "$it$b" }
+        }
+    }
+
     fun map(type: Type): Type {
         return if (type.sort == Type.OBJECT) {
-            Type.getObjectType(crustyUnClassMap[type.internalName] ?: type.internalName)
+            Type.getObjectType(crustyUnClassMap.g(type.internalName) ?: type.internalName)
         } else {
             type
         }
@@ -74,11 +86,11 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
 
         when (parts.size) {
             3 -> {
-                val owner = crustyUnClassMap[parts[0]] ?: parts[0]
+                val owner = crustyUnClassMap.g(parts[0]) ?: parts[0]
                 crustyFieldMap[Member(owner, parts[1], fieldDescriptorMap[owner to parts[1]]!!)] = parts[2]
             }
             4 -> {
-                val owner = crustyUnClassMap[parts[0]] ?: parts[0]
+                val owner = crustyUnClassMap.g(parts[0]) ?: parts[0]
                 crustyMethodMap[Member(owner, parts[1], mapDesc(parts[2]))] = parts[3]
             }
         }
@@ -91,7 +103,7 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
         writer.write("v1\tofficial\tintermediary\tnamed\n")
 
         classMap.forEach { (official, intermediary) ->
-            val crusty = crustyClassMap[official]?.let { crusty ->
+            val crusty = crustyClassMap.g(official)?.let { crusty ->
                 if (crusty.contains('/')) {
                     crusty
                 } else {
