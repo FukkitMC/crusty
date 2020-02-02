@@ -1,15 +1,14 @@
-From 9d98a224d95b438d917dfb1649406e10461e280b Mon Sep 17 00:00:00 2001
+From 15aa35e99073d5725e4f69dc11cab6b914eecf74 Mon Sep 17 00:00:00 2001
 From: Ramid Khan <ramidzkh@gmail.com>
-Date: Sat, 25 Jan 2020 21:46:48 +1100
+Date: Sun, 2 Feb 2020 21:16:17 +1100
 Subject: [PATCH] Fix 1.15.2 mappings
 
-Signed-off-by: Ramid Khan <ramidzkh@gmail.com>
 ---
- mappings/bukkit-1.15.2-members.csrg | 19 +++++++++----------
- 1 file changed, 9 insertions(+), 10 deletions(-)
+ mappings/bukkit-1.15.2-members.csrg | 30 ++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
 
 diff --git a/mappings/bukkit-1.15.2-members.csrg b/mappings/bukkit-1.15.2-members.csrg
-index 01ea590..81644b9 100644
+index 01ea590..3285747 100644
 --- a/mappings/bukkit-1.15.2-members.csrg
 +++ b/mappings/bukkit-1.15.2-members.csrg
 @@ -1282,13 +1282,13 @@ BossBattleCustomData a (LMinecraftKey;LIChatBaseComponent;)LBossBattleCustom; re
@@ -30,8 +29,12 @@ index 01ea590..81644b9 100644
  BossBattleServer d (Z)V setVisible
  BossBattleServer h ()Ljava/util/Collection; getPlayers
  BossBattleServer j visible
-@@ -1424,7 +1424,7 @@ ChunkProviderServer a (LTicketType;LChunkCoordIntPair;ILjava/lang/Object;)V addT
- ChunkProviderServer a (Ljava/util/function/BooleanSupplier;)V tick
+@@ -1421,10 +1421,10 @@ ChunkProviderServer a (J)LPlayerChunk; getChunk
+ ChunkProviderServer a (LEntity;LPacket;)V broadcastIncludingSelf
+ ChunkProviderServer a (LEntityPlayer;)V movePlayer
+ ChunkProviderServer a (LTicketType;LChunkCoordIntPair;ILjava/lang/Object;)V addTicket
+-ChunkProviderServer a (Ljava/util/function/BooleanSupplier;)V tick
++IChunkProvider a (Ljava/util/function/BooleanSupplier;)V tick
  ChunkProviderServer a (Z)V save
  ChunkProviderServer a playerChunkMap
 -ChunkProviderServer b (II)Z isLoaded
@@ -39,6 +42,15 @@ index 01ea590..81644b9 100644
  ChunkProviderServer b (LBlockPosition;)V flagDirty
  ChunkProviderServer b (LEntity;LPacket;)V broadcast
  ChunkProviderServer b (LTicketType;LChunkCoordIntPair;ILjava/lang/Object;)V removeTicket
+@@ -2193,7 +2193,7 @@ EntityCat$PathfinderGoalTemptChance c chosenTarget
+ EntityChicken bB eggLayTime
+ EntityChicken eq ()Z isChickenJockey
+ EntityComplexPart b owner
+-EntityCreeper J_ ()Z isPowered
++alk J_ ()Z isPowered
+ EntityCreeper bx fuseTicks
+ EntityCreeper by maxFuseTicks
+ EntityCreeper bz explosionRadius
 @@ -2266,7 +2266,7 @@ EntityFishingHook$HookState a FLYING
  EntityFishingHook$HookState b HOOKED_IN_ENTITY
  EntityFishingHook$HookState c BOBBING
@@ -48,33 +60,25 @@ index 01ea590..81644b9 100644
  EntityFox by FIRST_TRUSTED_PLAYER
  EntityFox bz SECOND_TRUSTED_PLAYER
  EntityFox eD ()V initializePathFinderGoals
-@@ -2879,7 +2879,6 @@ EntityVex r (Z)V setCharging
+@@ -2673,7 +2673,7 @@ EntityPositionTypes$Surface a ON_GROUND
+ EntityPositionTypes$Surface b IN_WATER
+ EntityPositionTypes$Surface c NO_RESTRICTIONS
+ EntityPotion b (LItemStack;)V setItem
+-EntityPotion f ()LItemStack; getItem
++ayv f ()LItemStack; getStack
+ EntityPotion i ()V splash
+ EntityPotion k ()Z isLingering
+ EntityProjectile ao shooterId
+@@ -2879,7 +2879,7 @@ EntityVex r (Z)V setCharging
  EntityVillager a (LVillagerData;)V setVillagerData
  EntityVillager eI ()Z canBreed
  EntityVillager eX ()V populateTrades
 -EntityVillager u (I)V setExperience
++EntityVillager u (I)V setXp
  EntityVillagerAbstract bw trades
  EntityVillagerAbstract by tradingPlayer
  EntityVillagerAbstract bz inventory
-@@ -3378,7 +3377,7 @@ IEntityAccess a (LEntity;LAxisAlignedBB;Ljava/util/function/Predicate;)Ljava/uti
- IFluidContainer a (LGeneratorAccess;LBlockPosition;LIBlockData;LFluid;)Z place
- IFluidContainer a (LIBlockAccess;LBlockPosition;LIBlockData;LFluidType;)Z canPlace
- IFluidSource b (LGeneratorAccess;LBlockPosition;LIBlockData;)LFluidType; removeFluid
--IHopper w ()LWorld; getWorld
-+IHopper w ()LWorld; getHopperWorld
- IInventory L_ ()I getMaxStackSize
- IInventory O_ ()I getSize
- IInventory a (I)LItemStack; getItem
-@@ -3393,7 +3392,7 @@ ILightAccess l ()LIBlockAccess; getWorld
- IMaterial i ()LItem; getItem
- IMerchant a (LEntityHuman;LIChatBaseComponent;I)V openTrade
- IMerchant e (LEntityHuman;)V setTradingPlayer
--IMerchant eB ()LWorld; getWorld
-+IMerchant eB ()LWorld; getTraderWorld
- IMerchant er ()I getExperience
- IMerchant es ()LEntityHuman; getTrader
- IMerchant eu ()LMerchantRecipeList; getOffers
-@@ -4323,7 +4322,7 @@ NBTTagInt b data
+@@ -4323,7 +4323,7 @@ NBTTagInt b data
  NBTTagIntArray b data
  NBTTagIntArray g ()[I getInts
  NBTTagList a (I)LNBTTagCompound; getCompound
@@ -83,4 +87,27 @@ index 01ea590..81644b9 100644
  NBTTagList c list
  NBTTagList h type
  NBTTagList j (I)Ljava/lang/String; getString
+@@ -4970,10 +4970,10 @@ ScoreboardTeam c ()LIChatBaseComponent; getDisplayName
+ ScoreboardTeam c (LIChatBaseComponent;)V setSuffix
+ ScoreboardTeam e ()LIChatBaseComponent; getPrefix
+ ScoreboardTeam f ()LIChatBaseComponent; getSuffix
+-ScoreboardTeam i ()Z canSeeFriendlyInvisibles
+-ScoreboardTeam j ()LScoreboardTeamBase$EnumNameTagVisibility; getNameTagVisibility
++ScoreboardTeamBase i ()Z canSeeFriendlyInvisibles
++ScoreboardTeamBase j ()LScoreboardTeamBase$EnumNameTagVisibility; getNameTagVisibility
+ ScoreboardTeam m ()I packOptionData
+-ScoreboardTeam n ()LEnumChatFormat; getColor
++ScoreboardTeamBase n ()LEnumChatFormat; getColor
+ ScoreboardTeamBase a (LScoreboardTeamBase;)Z isAlly
+ ScoreboardTeamBase b ()Ljava/lang/String; getName
+ ScoreboardTeamBase d (LIChatBaseComponent;)LIChatBaseComponent; getFormattedName
+@@ -6352,7 +6352,7 @@ World r (LBlockPosition;)Z isRainingAt
+ World r worldData
+ World s ()LCraftingManager; getCraftingManager
+ World s isClientSide
+-World s_ ()LBlockPosition; getSpawn
++GeneratorAccess s_ ()LBlockPosition; getSpawn
+ World t tickingTileEntities
+ World u ()Z isSavingDisabled
+ World u methodProfiler
 -- 

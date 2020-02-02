@@ -17,13 +17,14 @@
 package io.github.fukkitmc.crusty
 
 import org.objectweb.asm.Type
+import java.io.BufferedWriter
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 data class Member(val owner: String, val name: String, val desc: String)
 
-internal fun createMappings(intermediary: File, c: File, m: File, output: File) {
+internal fun createMappings(intermediary: File, c: File, m: File, output: File, shouldZip: Boolean) {
     val classMap = mutableMapOf<String, String>()
     val fieldMap = mutableMapOf<Member, String>()
     val methodMap = mutableMapOf<Member, String>()
@@ -96,10 +97,7 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
         }
     }
 
-    ZipOutputStream(output.outputStream()).use { zip ->
-        zip.putNextEntry(ZipEntry("mappings/mappings.tiny"))
-
-        val writer = zip.bufferedWriter()
+    fun write(writer: BufferedWriter) {
         writer.write("v1\tofficial\tintermediary\tnamed\n")
 
         classMap.forEach { (official, intermediary) ->
@@ -122,8 +120,18 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File) 
             val crusty = crustyFieldMap[member] ?: member.name
             writer.write("FIELD\t${member.owner}\t${member.desc}\t${member.name}\t$intermediary\t$crusty\n")
         }
+    }
 
-        writer.flush()
-        zip.closeEntry()
+    if (shouldZip) {
+        ZipOutputStream(output.outputStream()).use { zip ->
+            zip.putNextEntry(ZipEntry("mappings/mappings.tiny"))
+
+            val writer = zip.bufferedWriter()
+            write(writer)
+            writer.flush()
+            zip.closeEntry()
+        }
+    } else {
+        output.bufferedWriter().use(::write)
     }
 }

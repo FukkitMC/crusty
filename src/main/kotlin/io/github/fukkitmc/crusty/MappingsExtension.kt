@@ -104,7 +104,7 @@ open class MappingsExtension(private val project: Project) {
                 Files.copy(it.getPath("mappings", "mappings.tiny"), intermediary, StandardCopyOption.REPLACE_EXISTING)
             }
 
-            createMappings(intermediary.toFile(), classMap, methodMap, output)
+            createMappings(intermediary.toFile(), classMap, methodMap, output, true)
         }
 
         val id = DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId("org.spigotmc", "mappings"), "crusty-$version")
