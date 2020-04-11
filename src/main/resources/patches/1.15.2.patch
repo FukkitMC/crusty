@@ -1,14 +1,14 @@
-From 15aa35e99073d5725e4f69dc11cab6b914eecf74 Mon Sep 17 00:00:00 2001
+From b6ec8243d5ca8774665e19038267b050e43b93a5 Mon Sep 17 00:00:00 2001
 From: Ramid Khan <ramidzkh@gmail.com>
-Date: Sun, 2 Feb 2020 21:16:17 +1100
+Date: Sat, 11 Apr 2020 19:30:28 +1000
 Subject: [PATCH] Fix 1.15.2 mappings
 
 ---
- mappings/bukkit-1.15.2-members.csrg | 30 ++++++++++++++---------------
- 1 file changed, 15 insertions(+), 15 deletions(-)
+ mappings/bukkit-1.15.2-members.csrg | 34 ++++++++++++++---------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
 
 diff --git a/mappings/bukkit-1.15.2-members.csrg b/mappings/bukkit-1.15.2-members.csrg
-index 01ea590..3285747 100644
+index 01ea590..aa59f8d 100644
 --- a/mappings/bukkit-1.15.2-members.csrg
 +++ b/mappings/bukkit-1.15.2-members.csrg
 @@ -1282,13 +1282,13 @@ BossBattleCustomData a (LMinecraftKey;LIChatBaseComponent;)LBossBattleCustom; re
@@ -78,6 +78,24 @@ index 01ea590..3285747 100644
  EntityVillagerAbstract bw trades
  EntityVillagerAbstract by tradingPlayer
  EntityVillagerAbstract bz inventory
+@@ -3378,7 +3378,7 @@ IEntityAccess a (LEntity;LAxisAlignedBB;Ljava/util/function/Predicate;)Ljava/uti
+ IFluidContainer a (LGeneratorAccess;LBlockPosition;LIBlockData;LFluid;)Z place
+ IFluidContainer a (LIBlockAccess;LBlockPosition;LIBlockData;LFluidType;)Z canPlace
+ IFluidSource b (LGeneratorAccess;LBlockPosition;LIBlockData;)LFluidType; removeFluid
+-IHopper w ()LWorld; getWorld
++IHopper w ()LWorld; getHopperWorld
+ IInventory L_ ()I getMaxStackSize
+ IInventory O_ ()I getSize
+ IInventory a (I)LItemStack; getItem
+@@ -3393,7 +3393,7 @@ ILightAccess l ()LIBlockAccess; getWorld
+ IMaterial i ()LItem; getItem
+ IMerchant a (LEntityHuman;LIChatBaseComponent;I)V openTrade
+ IMerchant e (LEntityHuman;)V setTradingPlayer
+-IMerchant eB ()LWorld; getWorld
++IMerchant eB ()LWorld; getTraderWorld
+ IMerchant er ()I getExperience
+ IMerchant es ()LEntityHuman; getTrader
+ IMerchant eu ()LMerchantRecipeList; getOffers
 @@ -4323,7 +4323,7 @@ NBTTagInt b data
  NBTTagIntArray b data
  NBTTagIntArray g ()[I getInts
@@ -110,4 +128,4 @@ index 01ea590..3285747 100644
  World t tickingTileEntities
  World u ()Z isSavingDisabled
  World u methodProfiler
--- 
+--
