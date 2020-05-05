@@ -36,7 +36,7 @@ open class MappingsExtension(private val project: Project) {
     private val gson = Gson()
     private val buildData = project.buildDir.parentFile.resolve(".gradle").resolve("BuildData")
 
-    init {
+    fun mappings(version: String): Dependency {
         project.repositories.maven {
             it.name = "FabricMC (Intermediaries)"
             it.url = URI("https://maven.fabricmc.net/")
@@ -45,9 +45,11 @@ open class MappingsExtension(private val project: Project) {
                 contentDescriptor.includeModule("net.fabricmc", "intermediary")
             }
         }
+
+        return mappings(version, "net.fabricmc:intermediary:$version")
     }
 
-    fun mappings(version: String): Dependency {
+    fun mappings(version: String, intermediaryNotation: String): Dependency {
         val output = project.buildDir.parentFile.resolve(".gradle").resolve("crusty-$version.jar")
 
         if (!output.exists()) {
@@ -95,10 +97,10 @@ open class MappingsExtension(private val project: Project) {
 
             val data = buildData.resolve("info.json").bufferedReader().use { gson.fromJson(it, JsonObject::class.java) }
 
-            val intermediaryJar = project.configurations.detachedConfiguration(project.dependencies.create(mapOf("group" to "net.fabricmc", "name" to "intermediary", "version" to version))).singleFile
+            val intermediaryJar = project.configurations.detachedConfiguration(project.dependencies.create(intermediaryNotation)).singleFile
             val (classMap, methodMap) = buildData.resolve("mappings").let { it.resolve(data["classMappings"].asString) to it.resolve(data["memberMappings"].asString) }
 
-            val intermediary = Files.createTempFile("intermediary-$version", ".tiny")
+            val intermediary = Files.createTempFile("intermediary-$version-${intermediaryNotation.hashCode()}", ".tiny")
 
             FileSystems.newFileSystem(URI("jar:" + intermediaryJar.toURI()), mapOf<String, Any>()).use {
                 Files.copy(it.getPath("mappings", "mappings.tiny"), intermediary, StandardCopyOption.REPLACE_EXISTING)
@@ -107,7 +109,7 @@ open class MappingsExtension(private val project: Project) {
             createMappings(intermediary.toFile(), classMap, methodMap, output, true)
         }
 
-        val id = DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId("org.spigotmc", "mappings"), "crusty-$version")
+        val id = DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId("org.spigotmc", "mappings"), "crusty-$version-${intermediaryNotation.hashCode()}")
 
         return object : DefaultSelfResolvingDependency(id, project.files(output) as FileCollectionInternal) {
             override fun getGroup(): String = id.group

@@ -88,7 +88,10 @@ internal fun createMappings(intermediary: File, c: File, m: File, output: File, 
         when (parts.size) {
             3 -> {
                 val owner = crustyUnClassMap.g(parts[0]) ?: parts[0]
-                crustyFieldMap[Member(owner, parts[1], fieldDescriptorMap[owner to parts[1]]!!)] = parts[2]
+                crustyFieldMap[Member(owner, parts[1], fieldDescriptorMap[owner to parts[1]] ?: run{
+                    println("Dropped mapping $owner.${parts[1]}")
+                    return@forEachLine
+                })] = parts[2]
             }
             4 -> {
                 val owner = crustyUnClassMap.g(parts[0]) ?: parts[0]
