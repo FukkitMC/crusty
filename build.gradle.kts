@@ -19,20 +19,26 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    kotlin("jvm") version "1.3.61"
+    kotlin("jvm") version "1.5.10"
 }
 
-group = "io.github.fukkitmc"
-version = "1.1.8"
+group = "xyz.fukkit"
+version = "2.0.0"
 
 repositories {
-    jcenter()
+    mavenCentral()
+
+    maven {
+        name = "FabricMC"
+        url = uri("https://maven.fabricmc.net/")
+    }
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.google.code.gson", "gson", "2.8.6")
-    implementation("org.ow2.asm", "asm", "7.3.1")
+    implementation("org.cadixdev", "lorenz", "0.5.7")
+    implementation("org.cadixdev", "lorenz-io-proguard", "0.5.7")
+    implementation("net.fabricmc", "lorenz-tiny", "3.0.0")
 }
 
 tasks.withType<KotlinCompile> {
@@ -41,8 +47,8 @@ tasks.withType<KotlinCompile> {
 
 gradlePlugin {
     plugins {
-        create("crusty") {
-            id = "io.github.fukkitmc.crusty"
+        create("plugin") {
+            id = "xyz.fukkit.crusty"
             implementationClass = "io.github.fukkitmc.crusty.MappingsPlugin"
         }
     }

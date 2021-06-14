@@ -16,27 +16,28 @@
 
 package io.github.fukkitmc.crusty
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
+import net.fabricmc.lorenztiny.TinyMappingsReader
+import net.fabricmc.lorenztiny.TinyMappingsWriter
+import net.fabricmc.mapping.tree.TinyMappingFactory
+import org.cadixdev.lorenz.io.MappingFormats
+import org.cadixdev.lorenz.io.proguard.ProGuardFormat
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
 import org.gradle.api.internal.file.FileCollectionInternal
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
-import java.io.InputStreamReader
 import java.net.URI
 import java.net.URL
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 open class MappingsExtension(private val project: Project) {
 
-    private val gson = Gson()
-    private val buildData = project.buildDir.parentFile.resolve(".gradle").resolve("BuildData")
+    private val output = project.buildDir.parentFile.resolve(".gradle").resolve("crusty-1.17.jar")
 
-    fun mappings(version: String): Dependency {
+    fun mappings(): Dependency {
         project.repositories.maven {
             it.name = "FabricMC (Intermediaries)"
             it.url = URI("https://maven.fabricmc.net/")
@@ -46,75 +47,61 @@ open class MappingsExtension(private val project: Project) {
             }
         }
 
-        return mappings(version, "net.fabricmc:intermediary:$version")
-    }
-
-    fun mappings(version: String, intermediaryNotation: String): Dependency {
-        val output = project.buildDir.parentFile.resolve(".gradle").resolve("crusty-$version.jar")
-
         if (!output.exists()) {
-            val checkout = URL("https://hub.spigotmc.org/versions/$version.json").openStream().use {
-                gson.fromJson(InputStreamReader(it), JsonObject::class.java)
-            }.getAsJsonObject("refs")["BuildData"].asString
-
-            if (!buildData.resolve(".git").exists()) {
-                buildData.deleteRecursively()
-
-                project.exec { exec ->
-                    exec.workingDir = buildData.parentFile
-                    exec.commandLine("git", "clone", "https://hub.spigotmc.org/stash/scm/spigot/builddata.git", buildData.absolutePath)
-                }
-
-                project.exec { exec ->
-                    exec.workingDir = buildData
-                    exec.commandLine("git", "reset", "--hard", checkout)
-                }
-            } else {
-                project.exec { exec ->
-                    exec.workingDir = buildData
-                    exec.commandLine("git", "reset", "--hard", checkout)
-                }
-
-                project.exec { exec ->
-                    exec.workingDir = buildData
-                    exec.commandLine("git", "pull")
-                }
-            }
-
-            MappingsExtension::class.java.classLoader.getResource("patches/$version.patch")?.openStream()?.use {
-                project.exec { exec ->
-                    exec.workingDir = buildData
-                    exec.isIgnoreExitValue = true
-                    exec.commandLine("git", "am", "--abort")
-                }
-
-                project.exec { exec ->
-                    exec.workingDir = buildData
-                    exec.standardInput = it
-                    exec.commandLine("git", "am")
-                }
-            }
-
-            val data = buildData.resolve("info.json").bufferedReader().use { gson.fromJson(it, JsonObject::class.java) }
-
-            val intermediaryJar = project.configurations.detachedConfiguration(project.dependencies.create(intermediaryNotation)).singleFile
-            val (classMap, methodMap) = buildData.resolve("mappings").let { it.resolve(data["classMappings"].asString) to it.resolve(data["memberMappings"].asString) }
-
-            val intermediary = Files.createTempFile("intermediary-$version-${intermediaryNotation.hashCode()}", ".tiny")
-
-            FileSystems.newFileSystem(URI("jar:" + intermediaryJar.toURI()), mapOf<String, Any>()).use {
-                Files.copy(it.getPath("mappings", "mappings.tiny"), intermediary, StandardCopyOption.REPLACE_EXISTING)
-            }
-
-            createMappings(intermediary.toFile(), classMap, methodMap, output, true)
+            populate()
         }
 
-        val id = DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId("org.spigotmc", "mappings"), "crusty-$version-${intermediaryNotation.hashCode()}")
+        val id = DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId("org.spigotmc", "mappings"), "crusty-1.17")
 
         return object : DefaultSelfResolvingDependency(id, project.files(output) as FileCollectionInternal) {
             override fun getGroup(): String = id.group
             override fun getName(): String = id.module
             override fun getVersion(): String = id.version
+        }
+    }
+
+    private fun populate() {
+        val intermediary2official = project.run {
+            ZipFile(configurations.detachedConfiguration(dependencies.create("net.fabricmc:intermediary:1.17")).singleFile).use { zip ->
+                zip.getInputStream(zip.getEntry("mappings/mappings.tiny")).bufferedReader().use { reader ->
+                    TinyMappingsReader(TinyMappingFactory.loadWithDetection(reader), "intermediary", "official").read()
+                }
+            }
+        }
+
+        val official2bukkit = generateMappings(
+            URL("https://hub.spigotmc.org/stash/projects/SPIGOT/repos/builddata/raw/mappings/bukkit-1.17-cl.csrg?at=refs%2Fheads%2Fmaster").openStream()
+                .use {
+                    MappingFormats.CSRG.createReader(it).read()
+                },
+            URL("https://hub.spigotmc.org/stash/projects/SPIGOT/repos/builddata/raw/mappings/bukkit-1.17-members.csrg?at=refs%2Fheads%2Fmaster").openStream()
+                .use {
+                    MappingFormats.CSRG.createReader(it).read()
+                },
+            URL("https://launcher.mojang.com/v1/objects/84d80036e14bc5c7894a4fad9dd9f367d3000334/server.txt").openStream()
+                .use {
+                    ProGuardFormat().createReader(it).read()
+                },
+        ).reverse()
+        val intermediary2bukkit = intermediary2official.merge(official2bukkit)
+
+        intermediary2bukkit.addFieldTypeProvider { field ->
+            intermediary2official.getClassMapping(field.parent.fullObfuscatedName)
+                .flatMap { it.getFieldMapping(field.obfuscatedName) }
+                .flatMap { it.type }
+        }
+
+        // Patches
+        // net/minecraft/class_1915.method_8260()Lnet/minecraft/class_1937; -> getTraderWorld
+        intermediary2bukkit.getClassMapping("net/minecraft/class_1915")
+            .flatMap { it.getMethodMapping("method_8260", "()Lnet/minecraft/class_1937;") }
+            .ifPresent { it.deobfuscatedName = "getTraderWorld" }
+
+        ZipOutputStream(output.outputStream()).use {
+            it.putNextEntry(ZipEntry("mappings/mappings.tiny"))
+            it.bufferedWriter().use { writer ->
+                TinyMappingsWriter(writer, "intermediary", "named").write(intermediary2bukkit)
+            }
         }
     }
 }
