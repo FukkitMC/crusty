@@ -8,10 +8,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
 
@@ -26,11 +29,11 @@ import org.gradle.api.Project;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.internal.impldep.org.apache.commons.io.FileUtils;
 
 public class CrustyExtension {
-	private static final Logger ALTERNATIVE = Logging.getLogger(CrustyExtension.class);
-
 	public static final Gson GSON = new Gson();
+	private static final Logger ALTERNATIVE = Logging.getLogger(CrustyExtension.class);
 	private static final String JAVA_BUILD_DATA_COMMAND = "java -jar BuildData/";
 	public final Project project;
 	public final Path cache;
@@ -48,8 +51,40 @@ public class CrustyExtension {
 		}
 	}
 
+	public static void main(String[] args) {
+		CrustyExtension extension = new CrustyExtension(null);
+		Path latest = extension.getLatestBuildData();
+		extension.getCrustySources(latest);
+	}
+
+	public static void delete(Path path) throws IOException {
+		if(Files.isDirectory(path)) {
+			Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					Files.delete(file);
+					return FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+					Files.delete(dir);
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} else {
+			Files.deleteIfExists(path);
+		}
+	}
+
 	public Path getLatestBuildData() {
 		return this.getBuildData("https://hub.spigotmc.org/stash/rest/api/latest/projects/SPIGOT/repos/builddata/archive?format=zip");
+	}
+
+	public Path getBuildDataByCommit(String commit) {
+		return this.getBuildData(String.format(
+				"https://hub.spigotmc.org/stash/rest/api/latest/projects/SPIGOT/repos/builddata/archive?at=%s&format=zip",
+				commit));
 	}
 
 	public Path getBuildData(String url) {
@@ -116,12 +151,6 @@ public class CrustyExtension {
 		}
 	}
 
-	public Path getBuildDataByCommit(String commit) {
-		return this.getBuildData(String.format(
-				"https://hub.spigotmc.org/stash/rest/api/latest/projects/SPIGOT/repos/builddata/archive?at=%s&format=zip",
-				commit));
-	}
-
 	public Path getCrustySources(Path buildData) {
 		Path cache = this.cache;
 		try(FileSystem system = FileSystems.newFileSystem(buildData, null)) {
@@ -139,53 +168,58 @@ public class CrustyExtension {
 			Path minecraftCache = cache.resolve("minecraft").resolve(info.minecraftVersion);
 
 			Path vanillaJar = minecraftCache.resolve("server.jar");
-			if(!Files.exists(vanillaJar)) {
+			if(missing(vanillaJar)) {
 				this.getLogger().lifecycle("Downloading Server Jar");
 				this.download(vanillaJar, info.serverUrl, false);
+				deleteMarker(vanillaJar);
 			}
 
 			Path mappings = system.getPath("mappings");
 			Path classMappings = buildDataCache.resolve(info.classMappings);
-			if(!Files.exists(classMappings)) {
+			if(missing(classMappings)) {
 				Files.copy(mappings.resolve(info.classMappings), classMappings);
+				deleteMarker(classMappings);
 			}
 			Path memberMappings = buildDataCache.resolve(info.memberMappings);
-			if(!Files.exists(memberMappings)) {
+			if(missing(memberMappings)) {
 				Files.copy(mappings.resolve(info.memberMappings), memberMappings);
+				deleteMarker(memberMappings);
 			}
 			Path accessTransformers = buildDataCache.resolve(info.accessTransforms);
-			if(!Files.exists(accessTransformers)) {
+			if(missing(accessTransformers)) {
 				Files.copy(mappings.resolve(info.accessTransforms), accessTransformers);
+				deleteMarker(accessTransformers);
 			}
 
 			String excludeName = "bukkit-" + info.minecraftVersion + ".exclude";
 			Path exclude = buildDataCache.resolve("bukkit.exclude");
-			if(!Files.exists(exclude)) {
+			if(missing(exclude)) {
 				Files.copy(mappings.resolve(excludeName), exclude);
+				deleteMarker(exclude);
 			}
 
 			Path finalMappings;
 			if(info.mappingsUrl != null) {
 				Path mojmap = minecraftCache.resolve("mojmap.txt");
-				if(!Files.exists(mojmap)) {
+				if(missing(mojmap)) {
 					this.getLogger().lifecycle("Downloading Mojmap");
 					this.download(mojmap, info.mappingsUrl, true);
+					deleteMarker(mojmap);
 				}
 
 				finalMappings = buildDataCache.resolve("fields.csrg");
-				if(!Files.exists(finalMappings)) {
+				if(missing(finalMappings)) {
 					this.getLogger().lifecycle("Creating Field Mappings");
 					MapUtil mapUtil = new MapUtil();
 					mapUtil.loadBuk(classMappings);
-
-					if(!Files.exists(finalMappings)) {
-						mapUtil.makeFieldMaps(mojmap, finalMappings);
-					}
+					mapUtil.makeFieldMaps(mojmap, finalMappings);
+					deleteMarker(finalMappings);
 				}
 			} else if(info.packageMappings != null) {
 				finalMappings = buildDataCache.resolve(info.packageMappings);
-				if(!Files.exists(finalMappings)) {
+				if(missing(finalMappings)) {
 					Files.copy(mappings.resolve(info.packageMappings), finalMappings);
+					deleteMarker(finalMappings);
 				}
 			} else {
 				throw new RuntimeException("no mojmap or package mappings!");
@@ -195,7 +229,7 @@ public class CrustyExtension {
 				info.classMapCommand = "java -jar BuildData/bin/SpecialSource-2.jar map -i {0} -m {1} -o {2}";
 			}
 
-			info.classMapCommand = info.classMapCommand.replace("BuildData/mappings/"+excludeName, exclude.toString());
+			info.classMapCommand = info.classMapCommand.replace("BuildData/mappings/" + excludeName, exclude.toString());
 
 			if(info.memberMapCommand == null) {
 				info.memberMapCommand = "java -jar BuildData/bin/SpecialSource-2.jar map -i {0} -m {1} -o {2}";
@@ -206,35 +240,42 @@ public class CrustyExtension {
 			}
 
 			Path classMapped = buildDataCache.resolve("class-mapped-server.jar");
-			if(!Files.exists(classMapped)) {
+			if(missing(classMapped)) {
 				this.getLogger().lifecycle("Mapping Class Names");
 				this.execute(system, buildDataCache, MessageFormat.format(info.classMapCommand, vanillaJar, classMappings, classMapped));
+				deleteMarker(classMapped);
 			}
 
 			Path memberMapped = buildDataCache.resolve("member-mapped.jar");
-			if(!Files.exists(memberMapped)) {
+			if(missing(memberMapped)) {
 				this.getLogger().lifecycle("Mapping Members");
 				this.execute(system, buildDataCache, MessageFormat.format(info.memberMapCommand, classMapped, memberMappings, memberMapped));
+				deleteMarker(memberMapped);
 			}
 
 			Path finalMapped = buildDataCache.resolve("final-mapped.jar");
-			if(!Files.exists(finalMapped)) {
+			if(missing(finalMapped)) {
 				this.getLogger().lifecycle("Mapping packages/fields");
-				this.execute(system, buildDataCache, MessageFormat.format(info.finalMapCommand, memberMapped, accessTransformers, accessTransformers, finalMapped));
+				this.execute(system,
+				             buildDataCache,
+				             MessageFormat.format(info.finalMapCommand, memberMapped, accessTransformers, accessTransformers, finalMapped));
+				deleteMarker(finalMapped);
 			}
 
 			Path finalClasses = buildDataCache.resolve("final_classes");
-			if(!Files.exists(finalClasses)) {
+			if(missing(finalClasses)) {
 				Files.createDirectories(finalClasses);
 				this.getLogger().lifecycle("Unzipping mapped jar");
 				ZipUtils.unzip(finalMapped, finalClasses);
+				deleteMarker(finalClasses);
 			}
 
 			Path decompileDir = buildDataCache.resolve("final_sources");
-			if(!Files.exists(decompileDir)) {
+			if(missing(decompileDir)) {
 				Files.createDirectories(decompileDir);
 				this.getLogger().lifecycle("Decompiling Sources");
 				this.execute(system, buildDataCache, MessageFormat.format(info.decompileCommand, finalClasses, decompileDir));
+				deleteMarker(decompileDir);
 			}
 
 			return decompileDir;
@@ -266,9 +307,21 @@ public class CrustyExtension {
 		}
 	}
 
-	public static void main(String[] args) {
-		CrustyExtension extension = new CrustyExtension(null);
-		Path latest = extension.getLatestBuildData();
-		extension.getCrustySources(latest);
+	public static boolean missing(Path path) throws IOException {
+		Path marker = path.getParent().resolve(path.getFileName() + ".marker");
+		if(Files.exists(marker)) {
+			delete(path);
+			return true;
+		} else if(Files.exists(path)) {
+			return false;
+		} else {
+			Files.createFile(marker);
+			return true;
+		}
+	}
+
+	public static void deleteMarker(Path path) throws IOException {
+		Path marker = path.getParent().resolve(path.getFileName() + ".marker");
+		delete(marker);
 	}
 }
