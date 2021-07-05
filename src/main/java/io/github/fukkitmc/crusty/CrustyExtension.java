@@ -158,6 +158,19 @@ public class CrustyExtension {
 		return this.getCrusty(buildData, false);
 	}
 
+	public Path getDestination(Path buildData, boolean sources) {
+		Path cache = this.cache;
+		Hasher hasher = Hashing.sha256().newHasher();
+		hasher.putString(buildData.toAbsolutePath().toString(), StandardCharsets.UTF_8);
+		String file = hasher.hash().toString();
+		Path buildDataCache = cache.resolve("craftbukkit").resolve(file);
+		if(sources) {
+			return buildDataCache.resolve("final_sources");
+		} else {
+			return buildDataCache.resolve("final-stripped.jar");
+		}
+	}
+
 	public Path getCrusty(Path buildData, boolean sources) {
 		Path cache = this.cache;
 		try(FileSystem system = FileSystems.newFileSystem(buildData, null)) {

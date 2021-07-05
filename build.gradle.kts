@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "xyz.fukkit"
-version = "2.2.0"
+version = "2.2.2"
 
 repositories {
     mavenCentral()
