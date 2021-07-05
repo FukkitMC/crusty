@@ -265,7 +265,7 @@ public class CrustyExtension {
 			if(missing(finalClasses)) {
 				Files.createDirectories(finalClasses);
 				this.getLogger().lifecycle("Unzipping mapped jar");
-				ZipUtils.unzip(finalMapped, finalClasses);
+				ZipUtils.unzip(finalMapped, finalClasses, s -> s.startsWith("net/minecraft"));
 				deleteMarker(finalClasses);
 			}
 

@@ -17,21 +17,22 @@ import java.util.jar.Manifest;
 
 public class ExecuteUtil {
 	public static void execute(Path jar, String[] args) throws IOException {
-		URLClassLoader classLoader = new URLClassLoader(new URL[] {jar.toUri().toURL()}, ClassLoader.getSystemClassLoader());
-		String mainClass;
-		try(FileSystem system = FileSystems.newFileSystem(jar, null)) {
-			try(InputStream input = Files.newInputStream(system.getPath(JarFile.MANIFEST_NAME))) {
-				Manifest manifest = new Manifest(input);
-				mainClass = manifest.getMainAttributes().getValue(Attributes.Name.MAIN_CLASS);
+		try(URLClassLoader classLoader = new URLClassLoader(new URL[] {jar.toUri().toURL()}, ClassLoader.getSystemClassLoader())) {
+			String mainClass;
+			try(FileSystem system = FileSystems.newFileSystem(jar, null)) {
+				try(InputStream input = Files.newInputStream(system.getPath(JarFile.MANIFEST_NAME))) {
+					Manifest manifest = new Manifest(input);
+					mainClass = manifest.getMainAttributes().getValue(Attributes.Name.MAIN_CLASS);
+				}
 			}
-		}
 
-		try {
-			Class<?> type = Class.forName(mainClass, false, classLoader);
-			Method main = type.getDeclaredMethod("main", String[].class);
-			main.invoke(null, (Object) args);
-		} catch(Throwable e) {
-			throw new RuntimeException(e);
+			try {
+				Class<?> type = Class.forName(mainClass, false, classLoader);
+				Method main = type.getDeclaredMethod("main", String[].class);
+				main.invoke(null, (Object) args);
+			} catch(Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 }
