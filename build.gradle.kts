@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "xyz.fukkit"
-version = "2.0.0"
+version = "2.1.2"
 
 repositories {
     mavenCentral()
@@ -60,7 +60,7 @@ publishing {
     repositories {
         maven {
             name = "Fukkit"
-            url = uri("../fukkit-repo")
+            url = uri("gcs://devan-maven")
         }
     }
 }

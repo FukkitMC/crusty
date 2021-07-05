@@ -257,7 +257,7 @@ public class CrustyExtension {
 				this.getLogger().lifecycle("Mapping packages/fields");
 				this.execute(system,
 				             buildDataCache,
-				             MessageFormat.format(info.finalMapCommand, memberMapped, accessTransformers, accessTransformers, finalMapped));
+				             MessageFormat.format(info.finalMapCommand, memberMapped, accessTransformers, finalMappings, finalMapped));
 				deleteMarker(finalMapped);
 			}
 
@@ -307,13 +307,15 @@ public class CrustyExtension {
 	}
 
 	public static boolean missing(Path path) throws IOException {
-		Path marker = path.getParent().resolve(path.getFileName() + ".marker");
+		Path parent = path.getParent();
+		Path marker = parent.resolve(path.getFileName() + ".marker");
 		if(Files.exists(marker)) {
 			delete(path);
 			return true;
 		} else if(Files.exists(path)) {
 			return false;
 		} else {
+			Files.createDirectories(parent);
 			Files.createFile(marker);
 			return true;
 		}
