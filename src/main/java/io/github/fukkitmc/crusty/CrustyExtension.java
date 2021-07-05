@@ -29,7 +29,6 @@ import org.gradle.api.Project;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
-import org.gradle.internal.impldep.org.apache.commons.io.FileUtils;
 
 public class CrustyExtension {
 	public static final Gson GSON = new Gson();
