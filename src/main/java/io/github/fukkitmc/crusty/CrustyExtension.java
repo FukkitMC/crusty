@@ -151,6 +151,14 @@ public class CrustyExtension {
 	}
 
 	public Path getCrustySources(Path buildData) {
+		return this.getCrusty(buildData, true);
+	}
+
+	public Path getCrustyJar(Path buildData) {
+		return this.getCrusty(buildData, false);
+	}
+
+	public Path getCrusty(Path buildData, boolean sources) {
 		Path cache = this.cache;
 		try(FileSystem system = FileSystems.newFileSystem(buildData, null)) {
 			BuildDataInfo info;
@@ -261,23 +269,29 @@ public class CrustyExtension {
 				deleteMarker(finalMapped);
 			}
 
-			Path finalClasses = buildDataCache.resolve("final_classes");
-			if(missing(finalClasses)) {
-				Files.createDirectories(finalClasses);
-				this.getLogger().lifecycle("Unzipping mapped jar");
-				ZipUtils.unzip(finalMapped, finalClasses, s -> s.startsWith("net/minecraft"));
-				deleteMarker(finalClasses);
-			}
+			if(sources) {
+				Path finalClasses = buildDataCache.resolve("final_classes");
+				if(missing(finalClasses)) {
+					Files.createDirectories(finalClasses);
+					this.getLogger().lifecycle("Unzipping mapped jar");
+					ZipUtils.unzip(finalMapped, finalClasses, s -> s.startsWith("net/minecraft"));
+					deleteMarker(finalClasses);
+				}
 
-			Path decompileDir = buildDataCache.resolve("final_sources");
-			if(missing(decompileDir)) {
-				Files.createDirectories(decompileDir);
-				this.getLogger().lifecycle("Decompiling Sources");
-				this.execute(system, buildDataCache, MessageFormat.format(info.decompileCommand, finalClasses, decompileDir));
-				deleteMarker(decompileDir);
-			}
+				Path decompileDir = buildDataCache.resolve("final_sources");
+				if(missing(decompileDir)) {
+					Files.createDirectories(decompileDir);
+					this.getLogger().lifecycle("Decompiling Sources");
+					this.execute(system, buildDataCache, MessageFormat.format(info.decompileCommand, finalClasses, decompileDir));
+					deleteMarker(decompileDir);
+				}
 
-			return decompileDir;
+				return decompileDir;
+			} else {
+				Path strippedServer = buildDataCache.resolve("final-stripped.jar");
+				ZipUtils.copyWithout(finalMapped, strippedServer, s -> s.startsWith("net/minecraft"));
+				return strippedServer;
+			}
 		} catch(IOException e) {
 			throw new RuntimeException(e);
 		}
