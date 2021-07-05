@@ -39,6 +39,8 @@ dependencies {
     implementation("org.cadixdev", "lorenz", "0.5.7")
     implementation("org.cadixdev", "lorenz-io-proguard", "0.5.7")
     implementation("net.fabricmc", "lorenz-tiny", "3.0.0")
+    implementation("com.google.guava:guava:30.1.1-jre")
+    implementation("com.google.code.gson:gson:2.8.7")
 }
 
 tasks.withType<KotlinCompile> {
