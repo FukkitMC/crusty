@@ -7,10 +7,9 @@ import java.net.URL;
 
 import io.github.fukkitmc.crusty.util.Clock;
 import org.gradle.api.logging.Logger;
-import org.jetbrains.annotations.Nullable;
 
 public class DownloadUtil {
-	public static Result read(URL url, @Nullable String etag, long currentLastModifyDate, Logger logger, boolean offline, boolean compressed) throws IOException {
+	public static Result read(URL url, String etag, long currentLastModifyDate, Logger logger, boolean offline, boolean compressed) throws IOException {
 		Clock clock = new Clock("Validating/Downloading " + url + " cache took %dms", logger);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		// If the output already exists we'll use it's last modified time

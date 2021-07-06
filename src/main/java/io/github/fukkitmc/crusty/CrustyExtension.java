@@ -2,6 +2,7 @@ package io.github.fukkitmc.crusty;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -17,15 +18,19 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
+import io.github.fukkitmc.crusty.mappings.CrustyMappings;
 import io.github.fukkitmc.crusty.util.DownloadUtil;
 import io.github.fukkitmc.crusty.util.ExecuteUtil;
 import io.github.fukkitmc.crusty.util.MapUtil;
 import io.github.fukkitmc.crusty.util.ZipUtils;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
@@ -90,7 +95,7 @@ public class CrustyExtension {
 		Hasher hasher = Hashing.sha256().newHasher();
 		hasher.putString(url, StandardCharsets.UTF_8);
 		String file = hasher.hash().toString();
-		Path data = this.cache.resolve("buildata").resolve(file + ".zip");
+		Path data = this.cache.resolve("builddata").resolve(file + ".zip");
 		if(!Files.exists(data)) {
 			this.getLogger().lifecycle("Downloading BuildData " + url);
 			this.download(data, url, false);
@@ -151,29 +156,57 @@ public class CrustyExtension {
 	}
 
 	public Path getCrustySources(Path buildData) {
-		return this.getCrusty(buildData, true);
+		return this.getCrusty(buildData, Resource.SOURCE);
 	}
 
 	public Path getCrustyJar(Path buildData) {
-		return this.getCrusty(buildData, false);
+		return this.getCrusty(buildData, Resource.JAR);
 	}
 
-	public Path getDestination(Path buildData, boolean sources) {
-		Path cache = this.cache;
+	public String getBuildDataVersion(Path buildData) {
 		Hasher hasher = Hashing.sha256().newHasher();
 		hasher.putString(buildData.toAbsolutePath().toString(), StandardCharsets.UTF_8);
 		String file = hasher.hash().toString();
-		Path buildDataCache = cache.resolve("craftbukkit").resolve(file);
-		if(sources) {
+		return file;
+	}
+
+	public Path getDestination(Path buildData, Resource sources) {
+		Path cache = this.cache;
+		Path buildDataCache = cache.resolve("craftbukkit").resolve(this.getBuildDataVersion(buildData));
+		switch(sources) {
+		case SOURCE:
 			return buildDataCache.resolve("final_sources");
-		} else {
+		case JAR:
 			return buildDataCache.resolve("final-stripped.jar");
+		default:
+			throw new IllegalArgumentException();
 		}
 	}
 
-	public Path getCrusty(Path buildData, boolean sources) {
+	public Dependency getCrustyMappings(Path buildData, Object intermediary) {
+		return this.getCrustyMappings(buildData, this.project.getDependencies().create(intermediary));
+	}
+
+	public Dependency getCrustyMappings(Path buildData, Dependency intermediary) {
+		Path classes = this.getCrusty(buildData, Resource.CLASS_MAPPINGS);
+		List<File> files = new ArrayList<>();
+		files.add(this.getCrusty(buildData, Resource.MEMBER_MAPPINGS).toFile());
+		Path fields = this.getCrusty(buildData, Resource.FIELD_MAPPINGS);
+		if(fields != null) files.add(fields.toFile());
+		return new CrustyMappings(this, this.getBuildDataVersion(buildData), intermediary, List.of(classes.toFile()), files);
+	}
+
+	enum Resource {
+		CLASS_MAPPINGS,
+		MEMBER_MAPPINGS,
+		FIELD_MAPPINGS,
+		JAR,
+		SOURCE
+	}
+
+	public Path getCrusty(Path buildData, Resource resource) {
 		Path cache = this.cache;
-		try(FileSystem system = FileSystems.newFileSystem(buildData, null)) {
+		try(FileSystem system = FileSystems.newFileSystem(buildData, (ClassLoader) null)) {
 			BuildDataInfo info;
 			try(BufferedReader reader = Files.newBufferedReader(system.getPath("info.json"))) {
 				info = GSON.fromJson(reader, BuildDataInfo.class);
@@ -200,11 +233,19 @@ public class CrustyExtension {
 				Files.copy(mappings.resolve(info.classMappings), classMappings);
 				deleteMarker(classMappings);
 			}
+			if(resource == Resource.CLASS_MAPPINGS) {
+				return classMappings;
+			}
+
 			Path memberMappings = buildDataCache.resolve(info.memberMappings);
 			if(missing(memberMappings)) {
 				Files.copy(mappings.resolve(info.memberMappings), memberMappings);
 				deleteMarker(memberMappings);
 			}
+			if(resource == Resource.MEMBER_MAPPINGS) {
+				return memberMappings;
+			}
+
 			Path accessTransformers = buildDataCache.resolve(info.accessTransforms);
 			if(missing(accessTransformers)) {
 				Files.copy(mappings.resolve(info.accessTransforms), accessTransformers);
@@ -235,11 +276,19 @@ public class CrustyExtension {
 					mapUtil.makeFieldMaps(mojmap, finalMappings);
 					deleteMarker(finalMappings);
 				}
+
+				if(resource == Resource.FIELD_MAPPINGS) {
+					return finalMappings;
+				}
 			} else if(info.packageMappings != null) {
 				finalMappings = buildDataCache.resolve(info.packageMappings);
 				if(missing(finalMappings)) {
 					Files.copy(mappings.resolve(info.packageMappings), finalMappings);
 					deleteMarker(finalMappings);
+				}
+
+				if(resource == Resource.FIELD_MAPPINGS) {
+					return null;
 				}
 			} else {
 				throw new RuntimeException("no mojmap or package mappings!");
@@ -282,7 +331,7 @@ public class CrustyExtension {
 				deleteMarker(finalMapped);
 			}
 
-			if(sources) {
+			if(resource == Resource.SOURCE) {
 				Path finalClasses = buildDataCache.resolve("final_classes");
 				if(missing(finalClasses)) {
 					Files.createDirectories(finalClasses);

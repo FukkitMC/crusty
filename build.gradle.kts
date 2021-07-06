@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    kotlin("jvm") version "1.5.10"
 }
 
 group = "xyz.fukkit"
-version = "2.2.2"
+version = "2.3.0"
 
 repositories {
     mavenCentral()
@@ -35,16 +32,15 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
     implementation("org.cadixdev", "lorenz", "0.5.7")
     implementation("org.cadixdev", "lorenz-io-proguard", "0.5.7")
     implementation("net.fabricmc", "lorenz-tiny", "3.0.0")
     implementation("com.google.guava:guava:30.1.1-jre")
     implementation("com.google.code.gson:gson:2.8.7")
-}
+    implementation("net.fabricmc:mapping-io:0.1.5")
+    implementation("org.ow2.asm", "asm", "9.2")
+    implementation("org.ow2.asm", "asm-commons", "9.2")
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
 }
 
 gradlePlugin {

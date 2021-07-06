@@ -19,7 +19,7 @@ public class ExecuteUtil {
 	public static void execute(Path jar, String[] args) throws IOException {
 		try(URLClassLoader classLoader = new URLClassLoader(new URL[] {jar.toUri().toURL()}, ClassLoader.getSystemClassLoader())) {
 			String mainClass;
-			try(FileSystem system = FileSystems.newFileSystem(jar, null)) {
+			try(FileSystem system = FileSystems.newFileSystem(jar, (ClassLoader) null)) {
 				try(InputStream input = Files.newInputStream(system.getPath(JarFile.MANIFEST_NAME))) {
 					Manifest manifest = new Manifest(input);
 					mainClass = manifest.getMainAttributes().getValue(Attributes.Name.MAIN_CLASS);
