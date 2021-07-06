@@ -183,11 +183,11 @@ public class CrustyExtension {
 		}
 	}
 
-	public Dependency getCrustyMappings(Path buildData, Object intermediary) {
+	public CrustyMappings getCrustyMappings(Path buildData, Object intermediary) {
 		return this.getCrustyMappings(buildData, this.project.getDependencies().create(intermediary));
 	}
 
-	public Dependency getCrustyMappings(Path buildData, Dependency intermediary) {
+	public CrustyMappings getCrustyMappings(Path buildData, Dependency intermediary) {
 		Path classes = this.getCrusty(buildData, Resource.CLASS_MAPPINGS);
 		List<File> files = new ArrayList<>();
 		files.add(this.getCrusty(buildData, Resource.MEMBER_MAPPINGS).toFile());

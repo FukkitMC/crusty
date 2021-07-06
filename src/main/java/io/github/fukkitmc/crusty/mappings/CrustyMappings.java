@@ -185,16 +185,18 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 						tinyWriter.visitDstName(MappedElementKind.CLASS, 0, value.destName());
 						tinyWriter.visitElementContent(MappedElementKind.CLASS);
 
-						for(FromToEntry toEntry : value.entries) {
-							if(toEntry.isMethod) {
-								MappingTree.MethodMapping method = intermediary.getMethod(obfClassName, toEntry.entry.name, toEntry.entry.desc);
+						for(FromToEntry fromToEntry : value.entries) {
+							if(fromToEntry.isMethod) {
+								MappingTree.MethodMapping method = intermediary.getMethod(obfClassName, fromToEntry.entry.name, fromToEntry.entry.desc);
+								if(method == null) continue;
 								tinyWriter.visitMethod(method.getSrcName(), method.getSrcDesc());
-								tinyWriter.visitDstName(MappedElementKind.METHOD, 0, toEntry.destName());
+								tinyWriter.visitDstName(MappedElementKind.METHOD, 0, fromToEntry.destName);
 								tinyWriter.visitElementContent(MappedElementKind.METHOD);
 							} else {
-								MappingTree.FieldMapping field = intermediary.getField(obfClassName, toEntry.entry.name, toEntry.entry.desc);
+								MappingTree.FieldMapping field = intermediary.getField(obfClassName, fromToEntry.entry.name, fromToEntry.entry.desc);
+								if(field == null) continue;
 								tinyWriter.visitField(field.getSrcName(), field.getSrcDesc());
-								tinyWriter.visitDstName(MappedElementKind.FIELD, 0, toEntry.destName());
+								tinyWriter.visitDstName(MappedElementKind.FIELD, 0, fromToEntry.destName);
 								tinyWriter.visitElementContent(MappedElementKind.FIELD);
 							}
 						}
