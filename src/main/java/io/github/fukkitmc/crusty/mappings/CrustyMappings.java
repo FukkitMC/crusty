@@ -94,17 +94,17 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 
 		@Override
 		protected String writeIfOutdated(Path path, String currentData) {
-			Iterable<File> intermediary = CrustyMappings.this.resolve(List.of(CrustyMappings.this.intermediary));
-			String hash = hash(Iterables.concat(CrustyMappings.this.classes, CrustyMappings.this.members, intermediary));
+			Iterable<File> intermediaryFiles = CrustyMappings.this.resolve(List.of(CrustyMappings.this.intermediary));
+			String hash = hash(Iterables.concat(CrustyMappings.this.classes, CrustyMappings.this.members, intermediaryFiles));
 			if(hash.equals(currentData)) {
 				return null;
 			}
 
 			try {
-				MemoryMappingTree intermediaryTree = new MemoryMappingTree();
-				try(FileSystem system = FileSystems.newFileSystem(Iterables.getOnlyElement(intermediary).toPath())) {
+				MemoryMappingTree intermediary = new MemoryMappingTree();
+				try(FileSystem system = FileSystems.newFileSystem(Iterables.getOnlyElement(intermediaryFiles).toPath())) {
 					try(BufferedReader reader = Files.newBufferedReader(system.getPath("mappings/mappings.tiny"))) {
-						Tiny2Reader.read(reader, intermediaryTree);
+						Tiny2Reader.read(reader, intermediary);
 					}
 				}
 
@@ -147,13 +147,12 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 							String[] split = ln.split(" ");
 							if(split.length == 3) { // fields
 								String obfName = deobf(reversedClasses, split[0]);
-								//Unable to find descriptor for (la/net/minecraft/data/worldgen/BiomeDecoratorGroups).(do_/TAIGA_VEGETATION)
 								ClassEntry entry = mappings.computeIfAbsent(obfName, $ -> new ClassEntry($, new ArrayList<>()));
-								MappingTree.FieldMapping mapping = intermediaryTree.getField(obfName, split[1], null);
+								MappingTree.FieldMapping mapping = intermediary.getField(obfName, split[1], null);
 								if(mapping == null) {
 									String newName = split[1].replace("_", "");
 									if(SourceVersion.isKeyword(newName)) {
-										mapping = intermediaryTree.getField(obfName, newName, null);
+										mapping = intermediary.getField(obfName, newName, null);
 									}
 								}
 								if(mapping == null) {
@@ -179,24 +178,28 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 					tinyWriter.visitContent();
 					tinyWriter.visitNamespaces("intermediary", List.of("named"));
 					for(Map.Entry<String, ClassEntry> entry : mappings.entrySet()) {
-						String s = entry.getKey();
+						String obfClassName = entry.getKey();
 						ClassEntry value = entry.getValue();
 						tinyWriter.visitContent();
-						tinyWriter.visitClass(s);
-						tinyWriter.visitDstDesc(MappedElementKind.CLASS, 0, value.destName());
+						tinyWriter.visitClass(intermediary.mapClassName(obfClassName, 0));
+						tinyWriter.visitDstName(MappedElementKind.CLASS, 0, value.destName());
 						tinyWriter.visitElementContent(MappedElementKind.CLASS);
+
 						for(FromToEntry toEntry : value.entries) {
 							if(toEntry.isMethod) {
-								tinyWriter.visitMethod(toEntry.entry.name, toEntry.entry.desc);
-								tinyWriter.visitDstDesc(MappedElementKind.METHOD, 0, toEntry.destName());
+								MappingTree.MethodMapping method = intermediary.getMethod(obfClassName, toEntry.entry.name, toEntry.entry.desc);
+								tinyWriter.visitMethod(method.getSrcName(), method.getSrcDesc());
+								tinyWriter.visitDstName(MappedElementKind.METHOD, 0, toEntry.destName());
 								tinyWriter.visitElementContent(MappedElementKind.METHOD);
 							} else {
-								tinyWriter.visitField(toEntry.entry.name, toEntry.entry.desc);
-								tinyWriter.visitDstDesc(MappedElementKind.FIELD, 0, toEntry.destName());
+								MappingTree.FieldMapping field = intermediary.getField(obfClassName, toEntry.entry.name, toEntry.entry.desc);
+								tinyWriter.visitField(field.getSrcName(), field.getSrcDesc());
+								tinyWriter.visitDstName(MappedElementKind.FIELD, 0, toEntry.destName());
 								tinyWriter.visitElementContent(MappedElementKind.FIELD);
 							}
 						}
 					}
+					tinyWriter.visitEnd();
 					writer.flush();
 					zos.closeEntry();
 				}
