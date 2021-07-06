@@ -336,7 +336,7 @@ public class CrustyExtension {
 				if(missing(finalClasses)) {
 					Files.createDirectories(finalClasses);
 					this.getLogger().lifecycle("Unzipping mapped jar");
-					ZipUtils.unzip(finalMapped, finalClasses, s -> s.startsWith("net/minecraft"));
+					ZipUtils.unzip(finalMapped, finalClasses, s -> s.startsWith("net/minecraft") || s.startsWith("com/mojang/math"));
 					deleteMarker(finalClasses);
 				}
 
@@ -351,7 +351,7 @@ public class CrustyExtension {
 				return decompileDir;
 			} else {
 				Path strippedServer = buildDataCache.resolve("final-stripped.jar");
-				ZipUtils.copyWithout(finalMapped, strippedServer, s -> s.startsWith("net/minecraft"));
+				ZipUtils.copyWithout(finalMapped, strippedServer, s -> s.startsWith("net/minecraft") || s.startsWith("com/mojang/math"));
 				return strippedServer;
 			}
 		} catch(IOException e) {

@@ -55,7 +55,7 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 			if(outerMapped != null) {
 				return outerMapped + name.substring(current);
 			}
-			current = name.lastIndexOf('$', current);
+			current = name.lastIndexOf('$', current - 1);
 		} while(current != -1);
 		return name;
 	}
@@ -95,8 +95,9 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 		@Override
 		protected String writeIfOutdated(Path path, String currentData) {
 			Iterable<File> intermediary = CrustyMappings.this.resolve(List.of(CrustyMappings.this.intermediary));
-			if(currentData != null) {
-				hash(Iterables.concat(CrustyMappings.this.classes, CrustyMappings.this.members, intermediary));
+			String hash = hash(Iterables.concat(CrustyMappings.this.classes, CrustyMappings.this.members, intermediary));
+			if(hash.equals(currentData)) {
+				return null;
 			}
 
 			try {
@@ -106,7 +107,6 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 						Tiny2Reader.read(reader, intermediaryTree);
 					}
 				}
-
 
 				record MemberEntry(String name, String desc) {}
 				record FromToEntry(MemberEntry entry, String destName, boolean isMethod) {}
@@ -173,35 +173,38 @@ public class CrustyMappings extends AbstractSelfResolvingDependency {
 
 				try(ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(path))) {
 					zos.putNextEntry(new ZipEntry("mappings/mappings.tiny"));
-					try(OutputStreamWriter writer = new OutputStreamWriter(zos)) {
-						Tiny2Writer tinyWriter = new Tiny2Writer(writer, false);
-						tinyWriter.visitHeader();
+					OutputStreamWriter writer = new OutputStreamWriter(zos);
+					Tiny2Writer tinyWriter = new Tiny2Writer(writer, false);
+					tinyWriter.visitHeader();
+					tinyWriter.visitContent();
+					tinyWriter.visitNamespaces("intermediary", List.of("named"));
+					for(Map.Entry<String, ClassEntry> entry : mappings.entrySet()) {
+						String s = entry.getKey();
+						ClassEntry value = entry.getValue();
 						tinyWriter.visitContent();
-						tinyWriter.visitNamespaces("intermediary", List.of("named"));
-						for(Map.Entry<String, ClassEntry> entry : mappings.entrySet()) {
-							String s = entry.getKey();
-							ClassEntry value = entry.getValue();
-							tinyWriter.visitClass(s);
-							tinyWriter.visitDstDesc(MappedElementKind.CLASS, 0, value.destName());
-							for(FromToEntry toEntry : value.entries) {
-								if(toEntry.isMethod) {
-									tinyWriter.visitMethod(toEntry.entry.name, toEntry.entry.desc);
-									tinyWriter.visitDstDesc(MappedElementKind.METHOD, 0, toEntry.destName());
-								} else {
-									tinyWriter.visitField(toEntry.entry.name, toEntry.entry.desc);
-									tinyWriter.visitDstDesc(MappedElementKind.FIELD, 0, toEntry.destName());
-								}
+						tinyWriter.visitClass(s);
+						tinyWriter.visitDstDesc(MappedElementKind.CLASS, 0, value.destName());
+						tinyWriter.visitElementContent(MappedElementKind.CLASS);
+						for(FromToEntry toEntry : value.entries) {
+							if(toEntry.isMethod) {
+								tinyWriter.visitMethod(toEntry.entry.name, toEntry.entry.desc);
+								tinyWriter.visitDstDesc(MappedElementKind.METHOD, 0, toEntry.destName());
+								tinyWriter.visitElementContent(MappedElementKind.METHOD);
+							} else {
+								tinyWriter.visitField(toEntry.entry.name, toEntry.entry.desc);
+								tinyWriter.visitDstDesc(MappedElementKind.FIELD, 0, toEntry.destName());
+								tinyWriter.visitElementContent(MappedElementKind.FIELD);
 							}
 						}
 					}
+					writer.flush();
 					zos.closeEntry();
 				}
 			} catch(IOException e) {
 				throw new RuntimeException(e);
 			}
 
-
-			return null;
+			return hash;
 		}
 	}
 }
